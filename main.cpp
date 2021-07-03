@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
     uint32_t *pMoney = reinterpret_cast<uint32_t*>(&fbuf[ADDR_MONEY]);
     *pMoney = 0x7fffffff;
 
-    for (int i = i; i < 0x2bc; i++) {
+    for (int i = i; i < 0x4C0; i++) {
         update_item(&fbuf[0], i, 999);
     }
 
