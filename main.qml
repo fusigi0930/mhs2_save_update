@@ -71,7 +71,7 @@ Window {
         font.pointSize: 14
         spacing: 3
         onClicked: {
-            saveUpdater.save_update(textFile.text)
+            saveUpdater.save_update(textFile.text.toString())
         }
     }
 
@@ -79,7 +79,14 @@ Window {
         id: dlgBrowse
         title: "choose MHST2 save file"
         onAccepted: {
-            var s = dlgBrowse.fileUrl.toString().substring(8)
+            var s
+            if (Qt.platform.os == "linux") {
+                s = dlgBrowse.fileUrl.toString().substring(7)
+            }
+            else if (Qt.platform.os == "windows") {
+                s = dlgBrowse.fileUrl.toString().substring(8)
+            }
+
             textFile.text = decodeURIComponent(s)
         }
 
@@ -87,5 +94,9 @@ Window {
 
     SaveUpdater {
         id: saveUpdater
+
+        onSigErrorMessage: {
+            console.log(msg)
+        }
     }
 }

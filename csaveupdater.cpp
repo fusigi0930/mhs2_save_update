@@ -1,5 +1,6 @@
 #include "csaveupdater.h"
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <experimental/filesystem>
@@ -39,10 +40,12 @@ CSaveUpdater::~CSaveUpdater() {
 }
 
 void CSaveUpdater::save_update(QString filename) {
-    std::string fname = reinterpret_cast<char*>(filename.data());
+    std::string fname = reinterpret_cast<char*>(filename.toUtf8().data());
     fs::path p(fname.c_str());
     if (!fs::exists(p)) {
-        emit sigErrorMessage("file dose not exist!");
+        std::stringstream s;
+        s << "file: " << fname << "dose not exist!";
+        emit sigErrorMessage(s.str().c_str());
         return;
     }
 
@@ -53,7 +56,9 @@ void CSaveUpdater::save_update(QString filename) {
     std::vector<unsigned char> fbuf(std::istreambuf_iterator<char>(f), {});
     f.close();
 
-    fs::copy_file(fname.c_str(), szBak.c_str());
+    std::ofstream bkfile(szBak.c_str(), std::ios::binary);
+    bkfile.write(reinterpret_cast<char*>(&fbuf[0]), fbuf.size());
+    bkfile.close();
 
     uint32_t *pMoney = reinterpret_cast<uint32_t*>(&fbuf[ADDR_MONEY]);
     *pMoney = 0x7fffffff;
