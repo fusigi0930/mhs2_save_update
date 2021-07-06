@@ -2,6 +2,7 @@ import QtQuick 2.12
 import QtQuick.Window 2.12
 import QtQuick.Controls 2.0
 import QtQuick.Dialogs 1.2
+import SaveUpdater 1.0
 
 Window {
     visible: true
@@ -70,7 +71,7 @@ Window {
         font.pointSize: 14
         spacing: 3
         onClicked: {
-
+            saveUpdater.save_update(textFile.text)
         }
     }
 
@@ -82,5 +83,9 @@ Window {
             textFile.text = decodeURIComponent(s)
         }
 
+    }
+
+    SaveUpdater {
+        id: saveUpdater
     }
 }
