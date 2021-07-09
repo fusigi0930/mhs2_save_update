@@ -15,6 +15,7 @@ signals:
 
 public slots:
     void save_update(QString filename);
+    void save_adjust(QString filename, QString id, QString count);
 };
 
 #endif // CSAVEUPDATER_H

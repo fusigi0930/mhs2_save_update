@@ -38,8 +38,68 @@ Window {
             leftPadding: 10
 
             anchors.fill: parent
+        }
+    }
 
+    Text {
+        id: labelID
+        anchors.left: labelFile.left
+        anchors.top: labelFile.bottom
+        anchors.topMargin: 10
+        text: "ID:"
+        font.pixelSize: 30
+    }
 
+    Rectangle {
+        id: rectID
+        anchors.left: labelID.right
+        anchors.leftMargin: 5
+        anchors.top: labelID.top
+        anchors.topMargin: 1
+        width: 70
+        height: rectFile.height
+
+        border.width: 1
+        border.color: "#8080ff"
+        visible: true
+
+        TextField {
+            id: textID
+            font.pixelSize: 14
+            leftPadding: 10
+
+            anchors.fill: parent
+        }
+    }
+
+    Text {
+        id: labelCount
+        anchors.left: rectID.right
+        anchors.top: labelID.top
+        anchors.leftMargin: 10
+        text: "Count:"
+        font.pixelSize: 30
+    }
+
+    Rectangle {
+        id: rectCount
+        anchors.left: labelCount.right
+        anchors.leftMargin: 5
+        anchors.top: labelCount.top
+        anchors.topMargin: 1
+        width: 70
+        height: rectFile.height
+
+        border.width: 1
+        border.color: "#8080ff"
+        visible: true
+
+        TextField {
+            id: textCount
+            font.pixelSize: 14
+            leftPadding: 10
+
+            anchors.fill: parent
         }
     }
 
@@ -72,6 +132,23 @@ Window {
         spacing: 3
         onClicked: {
             saveUpdater.save_update(textFile.text.toString())
+            ppMsgText.text = "Done"
+            popupMessage.open()
+        }
+    }
+
+    Button {
+        id: buttonAdj
+        anchors.left: rectCount.right
+        anchors.top: labelCount.top
+        anchors.leftMargin: 10
+        text: "Adjust"
+        font.pointSize: 14
+        spacing: 3
+        onClicked: {
+            saveUpdater.save_adjust(textFile.text.toString(), textID.text.toString(), textCount.text.toString())
+            ppMsgText.text = "Done"
+            popupMessage.open()
         }
     }
 
@@ -97,6 +174,20 @@ Window {
 
         onSigErrorMessage: {
             console.log(msg)
+            ppMsgText.text = msg
+            popupMessage.open()
+        }
+    }
+
+    Popup {
+        id: popupMessage
+        width: 200
+        height: 150
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+        contentItem: Text {
+            id: ppMsgText
         }
     }
 }
