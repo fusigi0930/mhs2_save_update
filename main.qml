@@ -131,7 +131,7 @@ Window {
         font.pointSize: 14
         spacing: 3
         onClicked: {
-            saveUpdater.save_update(textFile.text.toString())
+            saveUpdater.save_update(textFile.text.toString(), textCount.text.toString())
             ppMsgText.text = "Done"
             popupMessage.open()
         }
