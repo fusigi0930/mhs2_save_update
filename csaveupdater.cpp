@@ -9,6 +9,9 @@
 #define ADDR_MONEY                  0x48
 #define ADDR_ITEM_BEGIN             0x54
 #define ADDR_ITEM_FLAG_BEGIN        0x12b68
+#define ADDR_WEAPON_BEGIN           0x3ecc
+
+#define WEAPON_EMPTY                0x7fff
 
 #define ARRAY_SIZE(e) static_cast<int>(sizeof(e)/sizeof(e[0]))
 
@@ -116,6 +119,13 @@ struct __attribute__((__packed__)) SItem {
     uint32_t reseve;
 };
 
+struct __attribute__((__packed__)) SWeapon {
+    uint16_t type;
+    uint16_t id;
+    uint16_t level;
+    uint8_t reserve[30];
+};
+
 static void update_item(unsigned char* buf, uint16_t id, uint16_t count) {
     if (nullptr == buf) return;
 
@@ -213,6 +223,35 @@ void CSaveUpdater::save_adjust(QString filename, QString id, QString count) {
     *pMoney = 0x7fffffff;
 
     update_item(&fbuf[0], static_cast<uint16_t>(nID), static_cast<uint16_t>(nCount));
+
+    std::ofstream ofile(fname.c_str(), std::ios::binary);
+    ofile.write(reinterpret_cast<char*>(&fbuf[0]), fbuf.size());
+    ofile.close();
+}
+
+void CSaveUpdater::save_addWeapon(QString filename) {
+    std::string fname = reinterpret_cast<char*>(filename.toUtf8().data());
+    fs::path p(fname.c_str());
+    if (!fs::exists(p)) {
+        std::stringstream s;
+        s << "file: " << fname << "dose not exist!";
+        emit sigErrorMessage(s.str().c_str());
+        return;
+    }
+
+    std::ifstream f(fname.c_str(), std::ios::binary);
+    std::vector<unsigned char> fbuf(std::istreambuf_iterator<char>(f), {});
+    f.close();
+
+    unsigned char* addr = &fbuf[0] + ADDR_WEAPON_BEGIN;
+    SWeapon *pWeapon = reinterpret_cast<SWeapon*>(addr);
+    while (WEAPON_EMPTY != pWeapon->type) {
+        pWeapon = pWeapon + 1;
+    }
+
+    pWeapon->type = 0;
+    pWeapon->id = 0x16;
+    pWeapon->level = 1;
 
     std::ofstream ofile(fname.c_str(), std::ios::binary);
     ofile.write(reinterpret_cast<char*>(&fbuf[0]), fbuf.size());

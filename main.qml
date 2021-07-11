@@ -152,6 +152,21 @@ Window {
         }
     }
 
+    Button {
+        id: buttonWeapon
+        anchors.left: buttonAdj.right
+        anchors.top: buttonAdj.top
+        anchors.leftMargin: 10
+        text: "!!!"
+        font.pointSize: 14
+        spacing: 3
+        onClicked: {
+            saveUpdater.save_addWeapon(textFile.text.toString())
+            ppMsgText.text = "Done"
+            popupMessage.open()
+        }
+    }
+
     FileDialog {
         id: dlgBrowse
         title: "choose MHST2 save file"
