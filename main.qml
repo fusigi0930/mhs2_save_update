@@ -131,9 +131,10 @@ Window {
         font.pointSize: 14
         spacing: 3
         onClicked: {
-            saveUpdater.save_update(textFile.text.toString(), textCount.text.toString())
-            ppMsgText.text = "Done"
-            popupMessage.open()
+            if (0 === saveUpdater.save_update(textFile.text.toString(), textCount.text.toString())) {
+                ppMsgText.text = "Done"
+                popupMessage.open()
+            }
         }
     }
 
@@ -146,9 +147,10 @@ Window {
         font.pointSize: 14
         spacing: 3
         onClicked: {
-            saveUpdater.save_adjust(textFile.text.toString(), textID.text.toString(), textCount.text.toString())
-            ppMsgText.text = "Done"
-            popupMessage.open()
+            if (0 === saveUpdater.save_adjust(textFile.text.toString(), textID.text.toString(), textCount.text.toString())) {
+                ppMsgText.text = "Done"
+                popupMessage.open()
+            }
         }
     }
 
@@ -161,9 +163,10 @@ Window {
         font.pointSize: 14
         spacing: 3
         onClicked: {
-            saveUpdater.save_addWeapon(textFile.text.toString())
-            ppMsgText.text = "Done"
-            popupMessage.open()
+            if (0 === saveUpdater.save_addWeapon(textFile.text.toString())) {
+                ppMsgText.text = "Done"
+                popupMessage.open()
+            }
         }
     }
 
@@ -196,12 +199,15 @@ Window {
 
     Popup {
         id: popupMessage
-        width: 200
         height: 150
+        width: parent.width / 2
+        anchors.centerIn: parent
+        padding: 10
         modal: true
         focus: true
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         contentItem: Text {
+            wrapMode: Text.WordWrap
             id: ppMsgText
         }
     }

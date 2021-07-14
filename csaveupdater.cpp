@@ -4,7 +4,10 @@
 #include <string>
 #include <vector>
 #include <experimental/filesystem>
+#include <QTextCodec>
 #include <QDebug>
+#include <QFile>
+#include <QDataStream>
 
 #define ADDR_MONEY                  0x48
 #define ADDR_ITEM_BEGIN             0x54
@@ -17,7 +20,7 @@
 
 #define UPDATE_SAVEDATA(m,a,v) \
     for (int i=0; i<ARRAY_SIZE(a); i++) { \
-        update_item(m, a[i], v); \
+        update_item(m, a[i], static_cast<uint16_t>(v)); \
     }
 
 namespace fs = std::experimental::filesystem;
@@ -126,10 +129,10 @@ struct __attribute__((__packed__)) SWeapon {
     uint8_t reserve[30];
 };
 
-static void update_item(unsigned char* buf, uint16_t id, uint16_t count) {
+static void update_item(char* buf, uint16_t id, uint16_t count) {
     if (nullptr == buf) return;
 
-    unsigned char* item_addr = buf + ADDR_ITEM_BEGIN + ((id - 1) * sizeof(SItem));
+    char* item_addr = buf + ADDR_ITEM_BEGIN + ((id - 1) * sizeof(SItem));
     SItem *item = reinterpret_cast<SItem *>(item_addr);
     if (0 == count) {
         item->id = 0;
@@ -140,8 +143,8 @@ static void update_item(unsigned char* buf, uint16_t id, uint16_t count) {
         item->count = count;
     }
 
-    unsigned char* flag_addr = buf + ADDR_ITEM_FLAG_BEGIN + (id / 8);
-    unsigned char bits = static_cast<unsigned char>(1) << (id % 8);
+    char* flag_addr = buf + ADDR_ITEM_FLAG_BEGIN + (id / 8);
+    char bits = static_cast<char>(1) << (id % 8);
     if (0 == count) {
         *flag_addr = *flag_addr & ~bits;
     }
@@ -159,30 +162,32 @@ CSaveUpdater::~CSaveUpdater() {
 
 }
 
-void CSaveUpdater::save_update(QString filename, QString count) {
-    std::string fname = reinterpret_cast<char*>(filename.toUtf8().data());
-    fs::path p(fname.c_str());
-    if (!fs::exists(p)) {
+int CSaveUpdater::save_update(QString filename, QString count) {
+    if (!QFile::exists(filename)) {
         std::stringstream s;
-        s << "file: " << fname << "dose not exist!";
-        emit sigErrorMessage(s.str().c_str());
-        return;
+        s << "file: " << filename.toUtf8().data() << "dose not exist!";
+        emit sigErrorMessage(QString::fromStdString((s.str())));
+        return 1;
     }
 
-    std::string szBak = p.filename().string();
+    QString szBak = filename;
     szBak.append(".super.bak");
 
-    std::ifstream f(fname.c_str(), std::ios::binary);
-    std::vector<unsigned char> fbuf(std::istreambuf_iterator<char>(f), {});
+    QFile f(filename);
+    f.open(QIODevice::ReadOnly);
+    std::vector<char> fbuf;
+    fbuf.resize(f.size());
+    f.read(&fbuf[0], f.size());
     f.close();
 
-    std::ofstream bkfile(szBak.c_str(), std::ios::binary);
-    bkfile.write(reinterpret_cast<char*>(&fbuf[0]), fbuf.size());
+    QFile bkfile(szBak);
+    bkfile.open(QIODevice::ReadWrite | QIODevice::Truncate);
+    bkfile.write(&fbuf[0], fbuf.size());
     bkfile.close();
 
     uint32_t *pMoney = reinterpret_cast<uint32_t*>(&fbuf[ADDR_MONEY]);
     *pMoney = 0x7fffffff;
-    int nCount = 999;
+    int nCount = 900;
     if (!count.isEmpty()) {
         nCount = count.toInt();
     }
@@ -193,30 +198,35 @@ void CSaveUpdater::save_update(QString filename, QString count) {
     UPDATE_SAVEDATA(&fbuf[0], sItemBuilding, nCount);
     UPDATE_SAVEDATA(&fbuf[0], sItemSource, nCount);
 
-    std::ofstream ofile(fname.c_str(), std::ios::binary);
+    QFile ofile(filename);
+    ofile.open(QIODevice::ReadWrite | QIODevice::Truncate);
     ofile.write(reinterpret_cast<char*>(&fbuf[0]), fbuf.size());
     ofile.close();
+
+    return 0;
 }
 
-void CSaveUpdater::save_adjust(QString filename, QString id, QString count) {
+int CSaveUpdater::save_adjust(QString filename, QString id, QString count) {
     int nID = 0;
     if (0 == id.toLower().left(2).compare("0x"))
         nID = id.toInt(nullptr, 16);
     else
         nID = id.toInt(nullptr, 10);
     int nCount = count.toInt();
-    std::string fname = reinterpret_cast<char*>(filename.toUtf8().data());
-    fs::path p(fname.c_str());
-    if (!fs::exists(p)) {
+
+    if (!QFile::exists(filename)) {
         std::stringstream s;
-        s << "file: " << fname << "dose not exist!";
-        emit sigErrorMessage(s.str().c_str());
-        return;
+        s << "file: " << filename.toUtf8().data() << "dose not exist!";
+        emit sigErrorMessage(QString::fromStdString((s.str())));
+        return 1;
     }
 
     qDebug("id: 0x%x, %s, count: %d", nID, id.toUtf8().data(), nCount);
-    std::ifstream f(fname.c_str(), std::ios::binary);
-    std::vector<unsigned char> fbuf(std::istreambuf_iterator<char>(f), {});
+    QFile f(filename);
+    f.open(QIODevice::ReadOnly);
+    std::vector<char> fbuf;
+    fbuf.resize(f.size());
+    f.read(&fbuf[0], f.size());
     f.close();
 
     uint32_t *pMoney = reinterpret_cast<uint32_t*>(&fbuf[ADDR_MONEY]);
@@ -224,26 +234,29 @@ void CSaveUpdater::save_adjust(QString filename, QString id, QString count) {
 
     update_item(&fbuf[0], static_cast<uint16_t>(nID), static_cast<uint16_t>(nCount));
 
-    std::ofstream ofile(fname.c_str(), std::ios::binary);
+    QFile ofile(filename);
+    ofile.open(QIODevice::ReadWrite | QIODevice::Truncate);
     ofile.write(reinterpret_cast<char*>(&fbuf[0]), fbuf.size());
     ofile.close();
+    return 0;
 }
 
-void CSaveUpdater::save_addWeapon(QString filename) {
-    std::string fname = reinterpret_cast<char*>(filename.toUtf8().data());
-    fs::path p(fname.c_str());
-    if (!fs::exists(p)) {
+int CSaveUpdater::save_addWeapon(QString filename) {
+    if (!QFile::exists(filename)) {
         std::stringstream s;
-        s << "file: " << fname << "dose not exist!";
-        emit sigErrorMessage(s.str().c_str());
-        return;
+        s << "file: " << filename.toUtf8().data() << "dose not exist!";
+        emit sigErrorMessage(QString::fromStdString((s.str())));
+        return 1;
     }
 
-    std::ifstream f(fname.c_str(), std::ios::binary);
-    std::vector<unsigned char> fbuf(std::istreambuf_iterator<char>(f), {});
+    QFile f(filename);
+    f.open(QIODevice::ReadOnly);
+    std::vector<char> fbuf;
+    fbuf.resize(f.size());
+    f.read(&fbuf[0], f.size());
     f.close();
 
-    unsigned char* addr = &fbuf[0] + ADDR_WEAPON_BEGIN;
+    char* addr = &fbuf[0] + ADDR_WEAPON_BEGIN;
     SWeapon *pWeapon = reinterpret_cast<SWeapon*>(addr);
     while (WEAPON_EMPTY != pWeapon->type) {
         pWeapon = pWeapon + 1;
@@ -253,7 +266,9 @@ void CSaveUpdater::save_addWeapon(QString filename) {
     pWeapon->id = 0x16;
     pWeapon->level = 1;
 
-    std::ofstream ofile(fname.c_str(), std::ios::binary);
+    QFile ofile(filename);
+    ofile.open(QIODevice::ReadWrite | QIODevice::Truncate);
     ofile.write(reinterpret_cast<char*>(&fbuf[0]), fbuf.size());
     ofile.close();
+    return 0;
 }
